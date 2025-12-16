@@ -243,5 +243,3 @@ For questions or issues, please open an issue on GitHub.
 - All the amazing open-source libraries used
 
 ---
-
-Made with ❤️ for researchers and academics

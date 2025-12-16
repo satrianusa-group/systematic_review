@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   app:
+    image: systematic-review-app:latest
     build:
       context: .
       dockerfile: Dockerfile
