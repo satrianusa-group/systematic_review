@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: systematic-review-app
+    ports:
+      - "80:80"        # Frontend (Nginx)
+      - "5001:5001"    # Backend API (Flask)
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - UPLOAD_API_KEY=${UPLOAD_API_KEY:-your_upload_key}
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/indexes:/app/backend/indexes
+      - ./logs:/var/log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/", "&&", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
