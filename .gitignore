@@ -1,3 +1,6 @@
+# Environment variables
+.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -19,18 +22,20 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-
-# Virtual Environment
-venv/
-env/
-ENV/
 .venv
+venv/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Backend
+backend/__pycache__/
+backend/*.pyc
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/indexes/*
+!backend/indexes/.gitkeep
+
+# Logs
+logs/
+*.log
 
 # IDE
 .vscode/
@@ -38,47 +43,10 @@ ENV/
 *.swp
 *.swo
 *~
-.DS_Store
-
-# Logs
-*.log
-logs/
-*.out
-*.err
-
-# Uploads and Indexes (generated data)
-backend/uploads/*
-backend/indexes/*
-!backend/uploads/.gitkeep
-!backend/indexes/.gitkeep
-
-# Docker
-*.pid
-.dockerignore
 
 # OS
-Thumbs.db
 .DS_Store
+Thumbs.db
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-.cache/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Node modules (if any)
-node_modules/
+# Docker
+.dockerignore

@@ -1,26 +1,49 @@
-version: '3.8'
+name: ${COMPOSE_PROJECT_NAME}
 
 services:
   app:
-    image: systematic-review-app:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: systematic-review-app
-    ports:
-      - "80:80"        # Frontend (Nginx)
-      - "5001:5001"    # Backend API (Flask)
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - UPLOAD_API_KEY=${UPLOAD_API_KEY:-your_upload_key}
+    image: ${APP_NAME}
+    container_name: ${APP_NAME}-app
+    restart: unless-stopped
+    expose:
+      - "80"
+      - "5001"
     volumes:
+      - ./.env:/app/.env:ro
       - ./backend/uploads:/app/backend/uploads
       - ./backend/indexes:/app/backend/indexes
       - ./logs:/var/log
-    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: 1
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      UPLOAD_API_KEY: ${UPLOAD_API_KEY}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      # HTTP
+      - traefik.http.routers.http-${APP_NAME}.entrypoints=web
+      - traefik.http.routers.http-${APP_NAME}.rule=Host(`${APP_DOMAIN}`) || Host(`www.${APP_DOMAIN}`)
+      - traefik.http.routers.http-${APP_NAME}.middlewares=redirect-to-https
+      # HTTPS
+      - traefik.http.routers.https-${APP_NAME}.entrypoints=websecure
+      - traefik.http.routers.https-${APP_NAME}.rule=Host(`${APP_DOMAIN}`) || Host(`www.${APP_DOMAIN}`)
+      - traefik.http.routers.https-${APP_NAME}.tls.certresolver=myresolver
+      - traefik.http.services.https-${APP_NAME}.loadbalancer.server.port=80
+      # Middlewares
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    networks:
+      - default
+      - traefik
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/", "&&", "curl", "-f", "http://localhost:5001/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 40s
+
+networks:
+  traefik:
+    external: true
