@@ -37,8 +37,9 @@ COPY --from=backend-builder /usr/local/bin /usr/local/bin
 # Copy backend files
 COPY backend/ /app/backend/
 
-# Create necessary directories
-RUN mkdir -p /app/backend/uploads /app/backend/indexes /var/log/supervisor /var/run
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/backend/uploads /app/backend/indexes /var/run \
+    && chmod -R 755 /app/backend
 
 # Copy frontend files
 COPY frontend/index.html /usr/share/nginx/html/
@@ -46,30 +47,43 @@ COPY frontend/app.js /usr/share/nginx/html/
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-RUN rm -f /etc/nginx/sites-enabled/default
 
-# Create supervisor config
+# Remove default nginx config and create log directory
+RUN rm -f /etc/nginx/sites-enabled/default \
+    && mkdir -p /var/log/nginx \
+    && touch /var/log/nginx/access.log /var/log/nginx/error.log \
+    && chmod -R 755 /var/log/nginx
+
+# Test nginx configuration
+RUN nginx -t
+
+# Create supervisor config with redirect to stderr/stdout for Docker logs
 RUN echo '[supervisord]\n\
 nodaemon=true\n\
-logfile=/var/log/supervisord.log\n\
+logfile=/dev/null\n\
+logfile_maxbytes=0\n\
 pidfile=/var/run/supervisord.pid\n\
 user=root\n\
 \n\
 [program:backend]\n\
-command=python /app/backend/app.py\n\
+command=python -u /app/backend/app.py\n\
 directory=/app/backend\n\
 autostart=true\n\
 autorestart=true\n\
-stderr_logfile=/var/log/backend.err.log\n\
-stdout_logfile=/var/log/backend.out.log\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
 environment=PYTHONUNBUFFERED="1"\n\
 \n\
 [program:nginx]\n\
 command=nginx -g "daemon off;"\n\
 autostart=true\n\
 autorestart=true\n\
-stderr_logfile=/var/log/nginx.err.log\n\
-stdout_logfile=/var/log/nginx.out.log' > /etc/supervisor/conf.d/supervisord.conf
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports (80 for frontend/nginx, 5001 for backend)
 EXPOSE 80 5001
