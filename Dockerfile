@@ -48,14 +48,18 @@ COPY frontend/app.js /usr/share/nginx/html/
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Remove default nginx config and setup logging
-RUN rm -f /etc/nginx/sites-enabled/default \
-    && mkdir -p /var/log/nginx \
-    && ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log
+# Remove default nginx config
+RUN rm -f /etc/nginx/sites-enabled/default
 
-# Test nginx configuration
-RUN nginx -t
+# Create startup script that ensures log directory exists
+RUN echo '#!/bin/bash\n\
+mkdir -p /var/log/nginx\n\
+touch /var/log/nginx/access.log /var/log/nginx/error.log\n\
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh \
+    && chmod +x /start.sh
+
+# Test nginx configuration (this will create the log dir during build)
+RUN mkdir -p /var/log/nginx && nginx -t
 
 # Create supervisor config with redirect to stderr/stdout for Docker logs
 RUN echo '[supervisord]\n\
@@ -88,5 +92,5 @@ stdout_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
 # Expose ports (80 for frontend/nginx, 5001 for backend)
 EXPOSE 80 5001
 
-# Start supervisor to manage both services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Use startup script instead of direct supervisord
+CMD ["/start.sh"]
