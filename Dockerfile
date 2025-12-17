@@ -48,11 +48,11 @@ COPY frontend/app.js /usr/share/nginx/html/
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Remove default nginx config and create log directory
+# Remove default nginx config and setup logging
 RUN rm -f /etc/nginx/sites-enabled/default \
     && mkdir -p /var/log/nginx \
-    && touch /var/log/nginx/access.log /var/log/nginx/error.log \
-    && chmod -R 755 /var/log/nginx
+    && ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
 
 # Test nginx configuration
 RUN nginx -t
