@@ -38,7 +38,7 @@ COPY --from=backend-builder /usr/local/bin /usr/local/bin
 COPY backend/ /app/backend/
 
 # Create necessary directories
-RUN mkdir -p /app/backend/uploads /app/backend/indexes /var/log/supervisor
+RUN mkdir -p /app/backend/uploads /app/backend/indexes /var/log/supervisor /var/run
 
 # Copy frontend files
 COPY frontend/index.html /usr/share/nginx/html/
@@ -49,29 +49,27 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN rm -f /etc/nginx/sites-enabled/default
 
 # Create supervisor config
-COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/var/run/supervisord.pid
-user=root
-
-[program:backend]
-command=python /app/backend/app.py
-directory=/app/backend
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/backend.err.log
-stdout_logfile=/var/log/backend.out.log
-environment=PYTHONUNBUFFERED="1"
-
-[program:nginx]
-command=nginx -g "daemon off;"
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/nginx.err.log
-stdout_logfile=/var/log/nginx.out.log
-EOF
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+logfile=/var/log/supervisord.log\n\
+pidfile=/var/run/supervisord.pid\n\
+user=root\n\
+\n\
+[program:backend]\n\
+command=python /app/backend/app.py\n\
+directory=/app/backend\n\
+autostart=true\n\
+autorestart=true\n\
+stderr_logfile=/var/log/backend.err.log\n\
+stdout_logfile=/var/log/backend.out.log\n\
+environment=PYTHONUNBUFFERED="1"\n\
+\n\
+[program:nginx]\n\
+command=nginx -g "daemon off;"\n\
+autostart=true\n\
+autorestart=true\n\
+stderr_logfile=/var/log/nginx.err.log\n\
+stdout_logfile=/var/log/nginx.out.log' > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports (80 for frontend/nginx, 5001 for backend)
 EXPOSE 80 5001
