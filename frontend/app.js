@@ -283,42 +283,45 @@ function buildHtmlTable(lines) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         
-        // Skip separator lines
-        if (line.includes('---') || line.includes('===')) {
-            continue;
-        }
-        
         // Skip empty lines
         if (!line) {
             continue;
         }
         
-        // Parse cells
-        const cells = line.split('|').filter(function(c) { 
-            return c.trim(); 
-        }).map(function(c) { 
-            return c.trim(); 
-        });
+        // Skip separator lines (lines with mostly dashes, pipes, and equals)
+        if (/^[\|\-\=\s:]+$/.test(line)) {
+            continue;
+        }
         
-        // Skip rows with no content or only dashes/empty cells
+        // Parse cells - remove leading/trailing pipes and split
+        const cells = line.split('|')
+            .filter(function(c) { return c.trim(); })
+            .map(function(c) { return c.trim(); });
+        
+        // Skip rows with no cells
         if (cells.length === 0) {
             continue;
         }
         
-        // Check if all cells are empty or just dashes
+        // Check if row has meaningful content (not just empty cells or single dashes)
         const hasContent = cells.some(function(cell) {
-            return cell && cell !== '-' && cell !== '' && cell.length > 0;
+            // Cell must have content and not be just a dash or whitespace
+            return cell && cell !== '-' && cell !== '–' && cell.replace(/\s+/g, '').length > 0;
         });
         
+        // Skip rows without meaningful content
         if (!hasContent) {
-            continue;  // Skip this row entirely
+            continue;
         }
         
+        // Build the row
         const tag = isFirstRow ? 'th' : 'td';
         
         html += '<tr>';
         for (let j = 0; j < cells.length; j++) {
-            html += '<' + tag + '>' + cells[j] + '</' + tag + '>';
+            // Replace empty cells or dashes with a non-breaking space for better display
+            const cellContent = (cells[j] && cells[j] !== '-' && cells[j] !== '–') ? cells[j] : '&nbsp;';
+            html += '<' + tag + '>' + cellContent + '</' + tag + '>';
         }
         html += '</tr>';
         
