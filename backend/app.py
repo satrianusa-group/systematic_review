@@ -254,6 +254,29 @@ def query_papers():
         logging.error(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def clean_markdown_table(text):
+    """Remove empty rows from markdown tables."""
+    lines = text.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        # If not a table row, keep it
+        if '|' not in line:
+            cleaned_lines.append(line)
+            continue
+        
+        # For table rows, check if it has content
+        # Remove pipes, dashes, equals, and whitespace to check for actual content
+        content = line.replace('|', '').replace('-', '').replace('=', '').replace(' ', '').strip()
+        
+        # Only keep rows that have actual content
+        if content and len(content) > 0:
+            cleaned_lines.append(line)
+        else:
+            logging.debug(f"Removed empty table row: {line[:50]}")
+    
+    return '\n'.join(cleaned_lines)
+
 def process_question(question, faiss_index, metadata):
     """Process question and generate answer with token tracking."""
     global client
@@ -306,7 +329,7 @@ def process_question(question, faiss_index, metadata):
     # Shortened system prompt
     system_prompt = "You are an expert systematic review assistant. Create detailed comparison tables from research papers."
     
-    # Shortened user prompt
+    # Shortened user prompt with explicit instructions
     user_prompt = f"""Question: {question}
 
 Papers excerpts:
@@ -314,28 +337,34 @@ Papers excerpts:
 
 Instructions:
 1. First, directly answer the user's question based on the excerpts
-2. If creating a comparison table, ONLY include rows that have actual content - do NOT add empty rows
-3. Make sure to include information from ALL papers in your response
-4. Use "Not reported" for missing information, but never create empty rows with just dashes
+2. Create a comparison table with ONLY the parameters that have actual values
+3. Do NOT include empty rows with just dashes or blank cells
+4. Make sure to include information from ALL papers in your response
+5. Use "Not reported" for missing information
 
-Format:
+Format your response as:
+
 ## Answer
-[Direct answer]
+[Direct answer to the question]
 
 ## Comparison Table
 | Parameter | Paper 1 | Paper 2 | Paper 3 |
 |-----------|---------|---------|---------|
-| Param 1   | Value   | Value   | Value   |
-| Param 2   | Value   | Value   | Not reported |
+| Actual Parameter Name | Actual Value | Actual Value | Not reported |
+| Another Parameter | Value | Value | Value |
 
-IMPORTANT: Do NOT add empty rows like:
+CRITICAL: Do NOT add rows like:
 | - | | | |
+|   |   |   |   |
+
+Only include rows where you have actual parameter names and at least some values.
 
 ## Key Findings
 - Finding 1
+- Finding 2
 
 ## Limitations
-- Notes
+- Any limitations or notes
 """
 
     # Count tokens
@@ -364,6 +393,11 @@ IMPORTANT: Do NOT add empty rows like:
     )
     
     answer = response.choices[0].message.content
+    
+    # Clean the answer to remove empty table rows
+    logging.info("Cleaning markdown table...")
+    answer = clean_markdown_table(answer)
+    logging.info("Table cleaned successfully")
     
     # Token usage from API
     usage = response.usage
