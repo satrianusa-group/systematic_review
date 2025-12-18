@@ -1,4 +1,31 @@
-const API_BASE_URL = 'http://localhost:5001';
+function getApiBaseUrl() {
+    const hostname = window.location.hostname;
+    const origin = window.location.origin;
+    const protocol = window.location.protocol;
+    
+    console.log('=== Environment Detection ===');
+    console.log('Protocol:', protocol);
+    console.log('Hostname:', hostname);
+    console.log('Origin:', origin);
+    
+    // If opened as file:// (local HTML file)
+    if (protocol === 'file:') {
+        console.log('⚠️ Opened as local file, using localhost:80');
+        return 'http://localhost/api';
+    }
+    
+    // If on localhost or 127.0.0.1
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return origin + '/api';
+    }
+    
+    // Production domain - ALWAYS use /api route through nginx
+    return origin + '/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
+console.log('✅ API Base URL:', API_BASE_URL);
+console.log('==============================\n');
 
 let sessionId = '';
 let indexUrl = '';
