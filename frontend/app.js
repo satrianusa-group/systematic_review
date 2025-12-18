@@ -52,15 +52,26 @@ async function uploadPapers() {
             formData.append('files', file);
         });
         
-        console.log('Uploading to:', API_BASE_URL + '/systematic-review/upload');
+        const uploadUrl = API_BASE_URL + '/systematic-review/upload';
+        console.log('Uploading to:', uploadUrl);
+        console.log('Session ID:', sessionId);
+        console.log('Files:', selectedFiles.map(f => f.name));
         
-        const response = await fetch(API_BASE_URL + '/systematic-review/upload', {
+        const response = await fetch(uploadUrl, {
             method: 'POST',
-            body: formData
+            body: formData,
+            // Don't set Content-Type header - browser will set it with boundary
+            mode: 'cors',
+            credentials: 'same-origin'
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+        
         if (!response.ok) {
-            throw new Error('Upload failed: ' + response.status);
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
+            throw new Error('Upload failed: ' + response.status + ' - ' + errorText);
         }
         
         const result = await response.json();
@@ -87,6 +98,7 @@ async function uploadPapers() {
         
     } catch (error) {
         console.error('Upload error:', error);
+        console.error('Error stack:', error.stack);
         showError('Failed to upload: ' + error.message);
     } finally {
         hideLoading();

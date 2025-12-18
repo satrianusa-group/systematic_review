@@ -27,7 +27,17 @@ from utils import (
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+
+# Configure CORS more explicitly
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": False
+    }
+})
 
 # Setup
 logging.basicConfig(level=logging.INFO)
